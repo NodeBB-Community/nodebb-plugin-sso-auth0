@@ -1,8 +1,8 @@
 (function(module) {
 	"use strict";
 
-	var User = module.parent.require('../src/user.js'),
-		RDB = module.parent.require('../src/redis.js'),
+	var User = module.parent.require('./user'),
+		db = module.parent.require('../src/database'),
 		passport = module.parent.require('passport'),
   		passportGithub = require('passport-github').Strategy,
   		fs = module.parent.require('fs'),
@@ -25,14 +25,11 @@
 				clientSecret: meta.config['social:github:secret'],
 				callbackURL: module.parent.require('nconf').get('url') + 'auth/github/callback'
 			}, function(token, tokenSecret, profile, done) {
-				console.log(profile.emails[0].value);
-				process.nextTick(function () {
-					GitHub.login(profile.id, profile.username, profile.emails[0].value, function(err, user) {
-						if (err) {
-							return done(err);
-						}
-						done(null, user);
-					});
+				GitHub.login(profile.id, profile.username, profile.emails[0].value, function(err, user) {
+					if (err) {
+						return done(err);
+					}
+					done(null, user);
 				});
 			}));
 
@@ -53,8 +50,12 @@
 			email = username + '@users.noreply.github.com';
 		}
 		
-		GitHub.getUidByGitHubID(githubID, function(uid) {
-			if (uid !== null) {
+		GitHub.getUidByGitHubID(githubID, function(err, uid) {
+			if (err) {
+				return callback(err);
+			}
+
+			if (uid) {
 				// Existing User
 				callback(null, {
 					uid: uid
@@ -63,13 +64,13 @@
 				// New User
 				var success = function(uid) {
 					User.setUserField(uid, 'githubid', githubID);
-					RDB.hset('githubid:uid', githubID, uid);
+					db.setObjectField('githubid:uid', githubID, uid);
 					callback(null, {
 						uid: uid
 					});
 				}
 
-				User.getUidByEmail(email, function(uid) {
+				User.getUidByEmail(email, function(err, uid) {
 					if (!uid) {
 						User.create(username, undefined, email, function(err, uid) {
 							if (err !== null) {
@@ -83,11 +84,12 @@
 	}
 
 	GitHub.getUidByGitHubID = function(githubID, callback) {
-		RDB.hget('githubid:uid', githubID, function(err, uid) {
+		db.getObjectField('githubid:uid', githubID, function(err, uid) {
 			if (err) {
-				RDB.handle(err);
+				callback(err);
+			} else {
+				callback(null, uid);
 			}
-			callback(uid);
 		});
 	};
 

@@ -1,14 +1,11 @@
 {
-  "name": "nodebb-plugin-github",
-  "version": "0.0.1",
+  "name": "nodebb-plugin-sso-github",
+  "version": "0.1.0-1",
   "description": "NodeBB GitHub SSO",
   "main": "library.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/psychobunny/nodebb-plugin-github"
+    "url": "https://github.com/psychobunny/nodebb-plugin-sso-github"
   },
   "keywords": [
     "nodebb",
@@ -24,12 +21,10 @@
   },
   "license": "BSD-2-Clause",
   "bugs": {
-    "url": "https://github.com/psychobunny/nodebb-plugin-github/issues"
+    "url": "https://github.com/psychobunny/nodebb-plugin-sso-github/issues"
   },
   "readme": "",
   "readmeFilename": "README.md",
-  "_id": "nodebb-plugin-github@0.0.1",
-  "_from": "nodebb-plugin-github@~0.0.1",
   "dependencies": {
     "passport-github": "~0.1.5"
   }
