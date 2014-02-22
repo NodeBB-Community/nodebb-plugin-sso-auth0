@@ -3,6 +3,7 @@
 
 	var User = module.parent.require('./user'),
 		db = module.parent.require('../src/database'),
+		meta = module.parent.require('./meta'),
 		passport = module.parent.require('passport'),
   		passportGithub = require('passport-github').Strategy,
   		fs = module.parent.require('fs'),
