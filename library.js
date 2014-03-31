@@ -5,9 +5,9 @@
 		db = module.parent.require('../src/database'),
 		meta = module.parent.require('./meta'),
 		passport = module.parent.require('passport'),
-  		passportGithub = require('passport-github').Strategy,
-  		fs = module.parent.require('fs'),
-  		path = module.parent.require('path');
+		passportGithub = require('passport-github').Strategy,
+		fs = module.parent.require('fs'),
+		path = module.parent.require('path');
 
 	var constants = Object.freeze({
 		'name': "GitHub",
@@ -68,20 +68,24 @@
 					callback(null, {
 						uid: uid
 					});
-				}
+				};
 
 				User.getUidByEmail(email, function(err, uid) {
 					if (!uid) {
 						User.create(username, undefined, email, function(err, uid) {
 							if (err !== null) {
 								callback(err);
-							} else success(uid);
+							} else {
+								success(uid);
+							}
 						});
-					} else success(uid); // Existing account -- merge
+					} else {
+						success(uid); // Existing account -- merge
+					}
 				});
 			}
 		});
-	}
+	};
 
 	GitHub.getUidByGitHubID = function(githubID, callback) {
 		db.getObjectField('githubid:uid', githubID, function(err, uid) {
