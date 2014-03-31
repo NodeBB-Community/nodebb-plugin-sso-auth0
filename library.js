@@ -12,14 +12,13 @@
 	var constants = Object.freeze({
 		'name': "GitHub",
 		'admin': {
-			'route': '/github',
 			'icon': 'fa-github'
 		}
 	});
 
 	var GitHub = {};
 
-	GitHub.getStrategy = function(strategies) {
+	GitHub.getStrategy = function(strategies, callback) {
 		if (meta.config['social:github:id'] && meta.config['social:github:secret']) {
 			passport.use(new passportGithub({
 				clientID: meta.config['social:github:id'],
@@ -41,9 +40,9 @@
 				icon: 'github',
 				scope: 'user:email'
 			});
-		}
 
-		return strategies;
+			callback(null, strategies);
+		}
 	};
 
 	GitHub.login = function(githubID, username, email, callback) {
@@ -94,34 +93,23 @@
 		});
 	};
 
-	GitHub.addMenuItem = function(custom_header) {
+	GitHub.addMenuItem = function(custom_header, callback) {
 		custom_header.authentication.push({
 			"route": constants.admin.route,
 			"icon": constants.admin.icon,
 			"name": constants.name
 		});
 
-		return custom_header;
+		callback(null, custom_header);
+	};
+
+	function renderAdmin(req, res, callback) {
+		res.render('sso/github/admin', {});
 	}
 
-	GitHub.addAdminRoute = function(custom_routes, callback) {
-		fs.readFile(path.resolve(__dirname, './static/admin.tpl'), function (err, template) {
-			custom_routes.routes.push({
-				"route": constants.admin.route,
-				"method": "get",
-				"options": function(req, res, callback) {
-					callback({
-						req: req,
-						res: res,
-						route: constants.admin.route,
-						name: constants.name,
-						content: template
-					});
-				}
-			});
-
-			callback(null, custom_routes);
-		});
+	GitHub.init = function(app, middleware, controllers) {
+		app.get('/admin/github', middleware.admin.buildHeader, renderAdmin);
+		app.get('/api/admin/github', renderAdmin);
 	};
 
 	module.exports = GitHub;
