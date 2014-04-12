@@ -12,7 +12,8 @@
 	var constants = Object.freeze({
 		'name': "GitHub",
 		'admin': {
-			'icon': 'fa-github'
+			'icon': 'fa-github',
+			'route': '/github'
 		}
 	});
 
@@ -23,7 +24,7 @@
 			passport.use(new passportGithub({
 				clientID: meta.config['social:github:id'],
 				clientSecret: meta.config['social:github:secret'],
-				callbackURL: module.parent.require('nconf').get('url') + 'auth/github/callback'
+				callbackURL: module.parent.require('nconf').get('url') + '/auth/github/callback'
 			}, function(token, tokenSecret, profile, done) {
 				GitHub.login(profile.id, profile.username, profile.emails[0].value, function(err, user) {
 					if (err) {
@@ -72,7 +73,7 @@
 
 				User.getUidByEmail(email, function(err, uid) {
 					if (!uid) {
-						User.create(username, undefined, email, function(err, uid) {
+						User.create({username: username, email: email}, function(err, uid) {
 							if (err !== null) {
 								callback(err);
 							} else {
