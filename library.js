@@ -41,9 +41,9 @@
 				icon: 'github',
 				scope: 'user:email'
 			});
-
-			callback(null, strategies);
 		}
+		
+		callback(null, strategies);
 	};
 
 	GitHub.login = function(githubID, username, email, callback) {
