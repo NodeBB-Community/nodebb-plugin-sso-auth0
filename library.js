@@ -7,7 +7,8 @@
 		passport = module.parent.require('passport'),
 		passportGithub = require('passport-github').Strategy,
 		fs = module.parent.require('fs'),
-		path = module.parent.require('path');
+		path = module.parent.require('path'),
+		winston = module.parent.require('winston');
 
 	var constants = Object.freeze({
 		'name': "GitHub",
@@ -20,10 +21,10 @@
 	var GitHub = {};
 
 	GitHub.getStrategy = function(strategies, callback) {
-		if (meta.config['social:github:id'] && meta.config['social:github:secret']) {
+		if (GitHub.hasOwnProperty('id') && GitHub.hasOwnProperty('secret')) {
 			passport.use(new passportGithub({
-				clientID: meta.config['social:github:id'],
-				clientSecret: meta.config['social:github:secret'],
+				clientID: GitHub.id,
+				clientSecret: GitHub.secret,
 				callbackURL: module.parent.require('nconf').get('url') + '/auth/github/callback'
 			}, function(token, tokenSecret, profile, done) {
 				GitHub.login(profile.id, profile.username, profile.emails[0].value, function(err, user) {
@@ -38,7 +39,7 @@
 				name: 'github',
 				url: '/auth/github',
 				callbackURL: '/auth/github/callback',
-				icon: 'github',
+				icon: 'fa-github',
 				scope: 'user:email'
 			});
 		}
@@ -112,9 +113,20 @@
 		res.render('sso/github/admin', {});
 	}
 
-	GitHub.init = function(app, middleware, controllers) {
+	GitHub.init = function(app, middleware, controllers, callback) {
 		app.get('/admin/github', middleware.admin.buildHeader, renderAdmin);
 		app.get('/api/admin/github', renderAdmin);
+
+		meta.settings.get('sso-github', function(err, config) {
+			if (config.hasOwnProperty('id') && config.hasOwnProperty('secret')) {
+				GitHub.id = config.id;
+				GitHub.secret = config.secret;
+			} else {
+				winston.warn('[plugins/sso-github] Please complete GitHub SSO setup at: /admin/plugins/sso-github');
+			}
+
+			callback();
+		});
 	};
 
 	module.exports = GitHub;
