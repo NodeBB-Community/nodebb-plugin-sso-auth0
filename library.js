@@ -113,9 +113,9 @@
 		res.render('sso/github/admin', {});
 	}
 
-	GitHub.init = function(app, middleware, controllers, callback) {
-		app.get('/admin/github', middleware.admin.buildHeader, renderAdmin);
-		app.get('/api/admin/github', renderAdmin);
+	GitHub.init = function(data, callback) {
+		data.app.get('/admin/github', data.middleware.admin.buildHeader, renderAdmin);
+		data.app.get('/api/admin/github', renderAdmin);
 
 		meta.settings.get('sso-github', function(err, config) {
 			if (config.hasOwnProperty('id') && config.hasOwnProperty('secret')) {
