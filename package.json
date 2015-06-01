@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-sso-github",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "NodeBB GitHub SSO",
   "main": "library.js",
   "repository": {
@@ -19,6 +19,18 @@
     "name": "psychobunny",
     "email": "psycho.bunny@hotmail.com"
   },
+  "contributors": [
+    {
+      "name": "Julian Lam",
+      "email": "julian@nodebb.org",
+      "url": "https://github.com/julianlam/nodebb-plugin-sso-github"
+    },
+    {
+      "name": "Eric Miao",
+      "email": "qjmiao@gmail.com",
+      "url": "https://github.com/qjmiao/nodebb-plugin-sso-github"
+    }
+  ],
   "license": "BSD-2-Clause",
   "bugs": {
     "url": "https://github.com/psychobunny/nodebb-plugin-sso-github/issues"

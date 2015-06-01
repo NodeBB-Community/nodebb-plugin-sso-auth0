@@ -2,49 +2,49 @@
 	"use strict";
 
 	var User = module.parent.require('./user'),
-		db = module.parent.require('../src/database'),
+		db = module.parent.require('./database'),
 		meta = module.parent.require('./meta'),
+		nconf = module.parent.require('nconf'),
 		passport = module.parent.require('passport'),
-		passportGithub = require('passport-github').Strategy,
-		fs = module.parent.require('fs'),
-		path = module.parent.require('path'),
-		winston = module.parent.require('winston');
+		GithubStrategy = require('passport-github').Strategy;
 
 	var constants = Object.freeze({
 		'name': "GitHub",
 		'admin': {
 			'icon': 'fa-github',
-			'route': '/github'
+			'route': '/plugins/sso-github'
 		}
 	});
 
 	var GitHub = {};
 
 	GitHub.getStrategy = function(strategies, callback) {
-		if (GitHub.hasOwnProperty('id') && GitHub.hasOwnProperty('secret')) {
-			passport.use(new passportGithub({
-				clientID: GitHub.id,
-				clientSecret: GitHub.secret,
-				callbackURL: module.parent.require('nconf').get('url') + '/auth/github/callback'
-			}, function(token, tokenSecret, profile, done) {
-				GitHub.login(profile.id, profile.username, profile.emails[0].value, function(err, user) {
-					if (err) {
-						return done(err);
-					}
-					done(null, user);
-				});
-			}));
+		meta.settings.get('sso-github', function(err, settings) {
+			if (!err && settings.id && settings.secret) {
+				passport.use(new GithubStrategy({
+					clientID: settings.id,
+					clientSecret: settings.secret,
+					callbackURL: nconf.get('url') + '/auth/github/callback'
+				}, function(token, tokenSecret, profile, done) {
+					GitHub.login(profile.id, profile.username, profile.emails[0].value, function(err, user) {
+						if (err) {
+							return done(err);
+						}
+						done(null, user);
+					});
+				}));
 
-			strategies.push({
-				name: 'github',
-				url: '/auth/github',
-				callbackURL: '/auth/github/callback',
-				icon: 'fa-github',
-				scope: 'user:email'
-			});
-		}
-		
-		callback(null, strategies);
+				strategies.push({
+					name: 'github',
+					url: '/auth/github',
+					callbackURL: '/auth/github/callback',
+					icon: 'fa-github',
+					scope: 'user:email'
+				});
+			}
+
+			callback(null, strategies);
+		});
 	};
 
 	GitHub.login = function(githubID, username, email, callback) {
@@ -109,24 +109,15 @@
 		callback(null, custom_header);
 	};
 
-	function renderAdmin(req, res, callback) {
-		res.render('sso/github/admin', {});
-	}
-
 	GitHub.init = function(data, callback) {
-		data.router.get('/admin/github', data.middleware.admin.buildHeader, renderAdmin);
-		data.router.get('/api/admin/github', renderAdmin);
+		function renderAdmin(req, res) {
+			res.render('admin/plugins/sso-github', {});
+		}
 
-		meta.settings.get('sso-github', function(err, config) {
-			if (config.hasOwnProperty('id') && config.hasOwnProperty('secret')) {
-				GitHub.id = config.id;
-				GitHub.secret = config.secret;
-			} else {
-				winston.warn('[plugins/sso-github] Please complete GitHub SSO setup at: /admin/plugins/sso-github');
-			}
+		data.router.get('/admin/plugins/sso-github', data.middleware.admin.buildHeader, renderAdmin);
+		data.router.get('/api/admin/plugins/sso-github', renderAdmin);
 
-			callback();
-		});
+		callback();
 	};
 
 	module.exports = GitHub;
