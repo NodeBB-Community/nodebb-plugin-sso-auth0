@@ -111,7 +111,9 @@
 
 	GitHub.init = function(data, callback) {
 		function renderAdmin(req, res) {
-			res.render('admin/plugins/sso-github', {});
+			res.render('admin/plugins/sso-github', {
+				callbackURL: nconf.get('url') + '/auth/github/callback'
+			});
 		}
 
 		data.router.get('/admin/plugins/sso-github', data.middleware.admin.buildHeader, renderAdmin);
