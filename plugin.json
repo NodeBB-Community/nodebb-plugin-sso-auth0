@@ -15,5 +15,8 @@
 			"hook": "static:app.load", "method": "init"
 		}
 	],
-	"templates": "./templates"
+	"templates": "./templates",
+	"scripts": [
+		"static/lib/admin.js"
+	]
 }

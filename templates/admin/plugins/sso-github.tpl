@@ -1,60 +1,33 @@
 <div class="row">
-	<div class="col-lg-9">
-		<div class="panel panel-default">
-			<div class="panel-heading"><i class="fa fa-github"></i> GitHub Social Authentication</div>
-			<div class="panel-body">
-				<p>
-					Register a new <strong>GitHub Application</strong> via 
-					<a href="https://github.com/settings/applications">Developer Applications</a> and then paste
-					your application details here. Your callback URL is yourdomain.com/auth/github/callback
+	<div class="col-sm-2 col-xs-12 settings-header">GitHub SSO</div>
+	<div class="col-sm-10 col-xs-12">
+		<div class="alert alert-info">
+			<p>
+				Register a new <strong>GitHub Application</strong> via 
+				<a href="https://github.com/settings/developers">Developer Applications</a> and then paste
+				your application details here.
+			</p>
+		</div>
+		<form class="sso-github-settings">
+			<div class="form-group">
+				<label for="id">Client ID</label>
+				<input type="text" name="id" title="Client ID" class="form-control" placeholder="Client ID">
+			</div>
+			<div class="form-group">
+				<label for="secret">Client Secret</label>
+				<input type="text" name="secret" title="Client Secret" class="form-control" placeholder="Client Secret" />
+			</div>
+			<div class="form-group alert alert-warning">
+				<label for="callback">Your NodeBB&apos;s "Authorization callback URL"</label>
+				<input type="text" id="callback" title="Authorization callback URL" class="form-control" value="{callbackURL}" readonly />
+				<p class="help-block">
+					Ensure that this value is set in your GitHub application&apos;s settings
 				</p>
-				<br />
-				<form class="sso-github">
-					<div class="form-group">
-						<label for="id">Client ID</label>
-						<input type="text" name="id" title="Client ID" class="form-control" placeholder="Client ID">
-					</div>
-					<div class="form-group">
-						<label for="secret">Client Secret</label>
-						<input type="text" name="secret" title="Client Secret" class="form-control" placeholder="Client Secret" />
-					</div>
-					<div class="form-group alert alert-warning">
-						<label for="callback">Your NodeBB&apos;s "Authorization callback URL"</label>
-						<input type="text" id="callback" title="Authorization callback URL" class="form-control" value="{callbackURL}" readonly />
-						<p class="help-block">
-							Ensure that this value is set in your GitHub application&apos;s settings
-						</p>
-					</div>
-				</form>
 			</div>
-		</div>
-	</div>
-	<div class="col-lg-3">
-		<div class="panel panel-default">
-			<div class="panel-heading">GitHub Control Panel</div>
-			<div class="panel-body">
-				<button class="btn btn-primary" id="save">Save Settings</button>
-			</div>
-		</div>
+		</form>
 	</div>
 </div>
 
-<script>
-	require(['settings'], function(Settings) {
-		Settings.load('sso-github', $('.sso-github'));
-
-		$('#save').on('click', function() {
-			Settings.save('sso-github', $('.sso-github'), function() {
-				app.alert({
-					type: 'success',
-					alert_id: 'github-saved',
-					title: 'Settings Saved',
-					message: 'Please reload your NodeBB to apply these settings',
-					clickfn: function() {
-						socket.emit('admin.reload');
-					}
-				});
-			});
-		});
-	});
-</script>
+<button id="save" class="floating-button mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
+	<i class="material-icons">save</i>
+</button>
