@@ -5,6 +5,7 @@
 		db = module.parent.require('./database'),
 		meta = module.parent.require('./meta'),
 		nconf = module.parent.require('nconf'),
+		async = module.parent.require('async'),
 		passport = module.parent.require('passport'),
 		GithubStrategy = require('passport-github').Strategy;
 
@@ -24,8 +25,16 @@
 				passport.use(new GithubStrategy({
 					clientID: settings.id,
 					clientSecret: settings.secret,
-					callbackURL: nconf.get('url') + '/auth/github/callback'
-				}, function(token, tokenSecret, profile, done) {
+					callbackURL: nconf.get('url') + '/auth/github/callback',
+					passReqToCallback: true
+				}, function(req, token, tokenSecret, profile, done) {
+					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
+						// Save Google-specific information to the user
+						User.setUserField(req.user.uid, 'githubid', profile.id);
+						db.setObjectField('githubid:uid', profile.id, req.user.uid);
+						return done(null, req.user);
+					}
+
 					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
 					GitHub.login(profile.id, profile.username, email, function(err, user) {
 						if (err) {
@@ -39,13 +48,38 @@
 					name: 'github',
 					url: '/auth/github',
 					callbackURL: '/auth/github/callback',
-					icon: 'fa-github',
+					icon: constants.admin.icon,
 					scope: 'user:email'
 				});
 			}
 
 			callback(null, strategies);
 		});
+	};
+
+	GitHub.getAssociation = function(data, callback) {
+		User.getUserField(data.uid, 'githubid', function(err, githubid) {
+			if (err) {
+				return callback(err, data);
+			}
+
+			if (githubid) {
+				data.associations.push({
+					associated: true,
+					name: constants.name,
+					icon: constants.admin.icon
+				});
+			} else {
+				data.associations.push({
+					associated: false,
+					url: nconf.get('url') + '/auth/github',
+					name: constants.name,
+					icon: constants.admin.icon
+				});
+			}
+
+			callback(null, data);
+		})
 	};
 
 	GitHub.login = function(githubID, username, email, callback) {
@@ -101,6 +135,7 @@
 	};
 
 	GitHub.addMenuItem = function(custom_header, callback) {
+		console.log('watt');
 		custom_header.authentication.push({
 			"route": constants.admin.route,
 			"icon": constants.admin.icon,
@@ -121,6 +156,21 @@
 		data.router.get('/api/admin/plugins/sso-github', renderAdmin);
 
 		callback();
+	};
+
+	GitHub.deleteUserData = function(uid, callback) {
+		async.waterfall([
+			async.apply(User.getUserField, uid, 'githubid'),
+			function(oAuthIdToDelete, next) {
+				db.deleteObjectField('githubid:uid', oAuthIdToDelete, next);
+			}
+		], function(err) {
+			if (err) {
+				winston.error('[sso-google] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
+				return callback(err);
+			}
+			callback(null, uid);
+		});
 	};
 
 	module.exports = GitHub;

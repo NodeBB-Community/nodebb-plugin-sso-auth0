@@ -5,7 +5,7 @@
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/psychobunny/nodebb-plugin-sso-github"
+    "url": "https://github.com/julianlam/nodebb-plugin-sso-github"
   },
   "keywords": [
     "nodebb",
@@ -16,8 +16,8 @@
     "registration"
   ],
   "author": {
-    "name": "psychobunny",
-    "email": "psycho.bunny@hotmail.com"
+    "name": "julianlam",
+    "email": "julian@nodebb.org"
   },
   "contributors": [
     {
@@ -33,7 +33,7 @@
   ],
   "license": "BSD-2-Clause",
   "bugs": {
-    "url": "https://github.com/psychobunny/nodebb-plugin-sso-github/issues"
+    "url": "https://github.com/julianlam/nodebb-plugin-sso-github/issues"
   },
   "readme": "",
   "readmeFilename": "README.md",
@@ -41,6 +41,6 @@
     "passport-github": "1.0.0"
   },
   "nbbpm": {
-    "compatibility": "^0.8.0"
+    "compatibility": "^0.8.3"
   }
 }

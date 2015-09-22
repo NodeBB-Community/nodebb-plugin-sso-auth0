@@ -2,18 +2,14 @@
 	"id": "nodebb-plugin-sso-github",
 	"name": "NodeBB GitHub SSO",
 	"description": "NodeBB Plugin that allows users to login/register via their GitHub account.",
-	"url": "https://github.com/psychobunny/nodebb-plugin-sso-github",
+	"url": "https://github.com/julianlam/nodebb-plugin-sso-github",
 	"library": "./library.js",
 	"hooks": [
-		{
-			"hook": "filter:auth.init", "method": "getStrategy"
-		},
-		{
-			"hook": "filter:admin.header.build", "method": "addMenuItem"
-		},
-		{
-			"hook": "static:app.load", "method": "init"
-		}
+		{ "hook": "static:app.load", "method": "init" },
+		{ "hook": "filter:auth.init", "method": "getStrategy" },
+		{ "hook": "filter:auth.list", "method": "getAssociation" },
+		{ "hook": "filter:admin.header.build", "method": "addMenuItem" },
+		{ "hook": "filter:user.delete", "method": "deleteUserData" }
 	],
 	"templates": "./templates",
 	"scripts": [
