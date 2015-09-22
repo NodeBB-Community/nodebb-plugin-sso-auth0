@@ -26,7 +26,8 @@
 					clientSecret: settings.secret,
 					callbackURL: nconf.get('url') + '/auth/github/callback'
 				}, function(token, tokenSecret, profile, done) {
-					GitHub.login(profile.id, profile.username, profile.emails[0].value, function(err, user) {
+					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
+					GitHub.login(profile.id, profile.username, email, function(err, user) {
 						if (err) {
 							return done(err);
 						}
