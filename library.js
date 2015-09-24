@@ -135,7 +135,6 @@
 	};
 
 	GitHub.addMenuItem = function(custom_header, callback) {
-		console.log('watt');
 		custom_header.authentication.push({
 			"route": constants.admin.route,
 			"icon": constants.admin.icon,
