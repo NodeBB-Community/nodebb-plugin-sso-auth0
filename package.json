@@ -38,9 +38,9 @@
   "readme": "",
   "readmeFilename": "README.md",
   "dependencies": {
-    "passport-github": "1.0.0"
+    "passport-github2": "^0.1.9"
   },
   "nbbpm": {
-    "compatibility": "^0.8.3"
+    "compatibility": "^0.8.3 || ^0.9.0"
   }
 }

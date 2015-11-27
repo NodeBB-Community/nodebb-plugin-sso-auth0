@@ -7,7 +7,7 @@
 		nconf = module.parent.require('nconf'),
 		async = module.parent.require('async'),
 		passport = module.parent.require('passport'),
-		GithubStrategy = require('passport-github').Strategy;
+		GithubStrategy = require('passport-github2').Strategy;
 
 	var constants = Object.freeze({
 		'name': "GitHub",
