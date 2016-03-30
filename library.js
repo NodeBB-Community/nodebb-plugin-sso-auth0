@@ -9,6 +9,8 @@
 		passport = module.parent.require('passport'),
 		GithubStrategy = require('passport-github2').Strategy;
 
+	var authenticationController = module.parent.require('./controllers/authentication');
+
 	var constants = Object.freeze({
 		'name': "GitHub",
 		'admin': {
@@ -40,6 +42,8 @@
 						if (err) {
 							return done(err);
 						}
+
+						authenticationController.onSuccessfulLogin(req, user.uid);
 						done(null, user);
 					});
 				}));

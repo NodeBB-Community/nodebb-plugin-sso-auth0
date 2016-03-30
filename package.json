@@ -41,6 +41,6 @@
     "passport-github2": "^0.1.9"
   },
   "nbbpm": {
-    "compatibility": "^1.0.0"
+    "compatibility": "^1.0.1"
   }
 }
