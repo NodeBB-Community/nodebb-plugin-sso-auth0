@@ -31,7 +31,7 @@
 					passReqToCallback: true
 				}, function(req, token, tokenSecret, profile, done) {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
-						// Save Google-specific information to the user
+						// Save GitHub -specific information to the user
 						User.setUserField(req.user.uid, 'githubid', profile.id);
 						db.setObjectField('githubid:uid', profile.id, req.user.uid);
 						return done(null, req.user);
@@ -161,7 +161,9 @@
 		callback();
 	};
 
-	GitHub.deleteUserData = function(uid, callback) {
+	GitHub.deleteUserData = function(data, callback) {
+		var uid = data.uid;
+
 		async.waterfall([
 			async.apply(User.getUserField, uid, 'githubid'),
 			function(oAuthIdToDelete, next) {
@@ -169,7 +171,7 @@
 			}
 		], function(err) {
 			if (err) {
-				winston.error('[sso-google] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
+				winston.error('[sso-github] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
 				return callback(err);
 			}
 			callback(null, uid);
