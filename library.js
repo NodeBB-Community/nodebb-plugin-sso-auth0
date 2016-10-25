@@ -107,6 +107,9 @@
 			} else {
 				// New User
 				var success = function(uid) {
+					// trust github's email
+					User.setUserField(uid, 'email:confirmed', 1);
+
 					User.setUserField(uid, 'githubid', githubID);
 					db.setObjectField('githubid:uid', githubID, uid);
 					callback(null, {
