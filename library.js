@@ -109,7 +109,8 @@
 				var success = function(uid) {
 					// trust github's email
 					User.setUserField(uid, 'email:confirmed', 1);
-
+					db.sortedSetRemove('users:notvalidated', uid);
+					
 					User.setUserField(uid, 'githubid', githubID);
 					db.setObjectField('githubid:uid', githubID, uid);
 					callback(null, {
