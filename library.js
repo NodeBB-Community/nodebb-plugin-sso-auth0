@@ -41,7 +41,7 @@
 					}
 
 					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
-					GitHub.login(profile.id, profile.username, email, function(err, user) {
+					GitHub.login(profile.id, profile.username, email, profile._json.avatar_url, function(err, user) {
 						if (err) {
 							return done(err);
 						}
@@ -89,7 +89,7 @@
 		})
 	};
 
-	GitHub.login = function(githubID, username, email, callback) {
+	GitHub.login = function(githubID, username, email, avatar_url, callback) {
 		if (!email) {
 			email = username + '@users.noreply.github.com';
 		}
@@ -110,8 +110,13 @@
 					// trust github's email
 					User.setUserField(uid, 'email:confirmed', 1);
 					db.sortedSetRemove('users:notvalidated', uid);
-					
+
 					User.setUserField(uid, 'githubid', githubID);
+
+					// set profile picture
+					User.setUserField(uid, 'uploadedpicture', avatar_url);
+					User.setUserField(uid, 'picture', avatar_url);
+
 					db.setObjectField('githubid:uid', githubID, uid);
 					callback(null, {
 						uid: uid
