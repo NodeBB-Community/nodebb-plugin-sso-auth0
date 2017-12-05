@@ -9,7 +9,7 @@
 		passport = module.parent.require('passport'),
 		GithubStrategy = require('passport-github2').Strategy;
 
-	var winston = require('winston');
+	var winston = module.parent.require('winston');
 
 	var authenticationController = module.parent.require('./controllers/authentication');
 
@@ -64,6 +64,11 @@
 		});
 	};
 
+	GitHub.appendUserHashWhitelist = function (data, callback) {
+		data.whitelist.push('githubid');
+		return setImmediate(callback, null, data);
+	};
+
 	GitHub.getAssociation = function(data, callback) {
 		User.getUserField(data.uid, 'githubid', function(err, githubid) {
 			if (err) {
@@ -74,7 +79,8 @@
 				data.associations.push({
 					associated: true,
 					name: constants.name,
-					icon: constants.admin.icon
+					icon: constants.admin.icon,
+					deauthUrl: nconf.get('url') + '/deauth/github',
 				});
 			} else {
 				data.associations.push({
@@ -161,6 +167,8 @@
 	};
 
 	GitHub.init = function(data, callback) {
+		var hostHelpers = require.main.require('./src/routes/helpers');
+
 		function renderAdmin(req, res) {
 			res.render('admin/plugins/sso-github', {
 				callbackURL: nconf.get('url') + '/auth/github/callback'
@@ -169,6 +177,23 @@
 
 		data.router.get('/admin/plugins/sso-github', data.middleware.admin.buildHeader, renderAdmin);
 		data.router.get('/api/admin/plugins/sso-github', renderAdmin);
+
+		hostHelpers.setupPageRoute(data.router, '/deauth/github', data.middleware, [data.middleware.requireUser], function (req, res) {
+			res.render('plugins/sso-github/deauth', {
+				service: "GitHub",
+			});
+		});
+		data.router.post('/deauth/github', data.middleware.requireUser, function (req, res, next) {
+			GitHub.deleteUserData({
+				uid: req.user.uid,
+			}, function (err) {
+				if (err) {
+					return next(err);
+				}
+
+				res.redirect(nconf.get('relative_path') + '/me/edit');
+			});
+		});
 
 		callback();
 	};
@@ -180,7 +205,8 @@
 			async.apply(User.getUserField, uid, 'githubid'),
 			function(oAuthIdToDelete, next) {
 				db.deleteObjectField('githubid:uid', oAuthIdToDelete, next);
-			}
+			},
+			async.apply(db.deleteObjectField, 'user:' + uid, 'githubid'),
 		], function(err) {
 			if (err) {
 				winston.error('[sso-github] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
