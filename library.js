@@ -25,6 +25,8 @@
 
 	GitHub.getStrategy = function(strategies, callback) {
 		meta.settings.get('sso-github', function(err, settings) {
+			GitHub.settings = settings;
+
 			if (!err && settings.id && settings.secret) {
 				passport.use(new GithubStrategy({
 					clientID: settings.id,
@@ -131,6 +133,11 @@
 
 				User.getUidByEmail(email, function(err, uid) {
 					if (!uid) {
+						// Abort user creation if registration via SSO is restricted
+						if (GitHub.settings.disableRegistration === 'on') {
+							return callback(new Error('[[error:sso-registration-disabled, GitHub]]'));
+						}
+
 						User.create({username: username, email: email}, function(err, uid) {
 							if (err !== null) {
 								callback(err);
