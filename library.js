@@ -190,7 +190,7 @@
 				service: "GitHub",
 			});
 		});
-		data.router.post('/deauth/github', data.middleware.requireUser, function (req, res, next) {
+		data.router.post('/deauth/github', [data.middleware.requireUser, data.middleware.applyCSRF], function (req, res, next) {
 			GitHub.deleteUserData({
 				uid: req.user.uid,
 			}, function (err) {
