@@ -7,43 +7,45 @@
 	var nconf = require.main.require('nconf');
 	var async = require.main.require('async');
 	var passport = require.main.require('passport');
-	var GithubStrategy = require('passport-github2').Strategy;
+	var Auth0Strategy = require('passport-auth0');
 
 	var winston = module.parent.require('winston');
 
 	var authenticationController = require.main.require('./src/controllers/authentication');
 
 	var constants = Object.freeze({
-		'name': "GitHub",
+		'name': "Auth0",
 		'admin': {
-			'icon': 'fa-github',
-			'route': '/plugins/sso-github'
+			'icon': 'fa-star',
+			'route': '/plugins/sso-auth0'
 		}
 	});
 
-	var GitHub = {};
+	var Auth0 = {};
 
-	GitHub.getStrategy = function(strategies, callback) {
-		meta.settings.get('sso-github', function(err, settings) {
-			GitHub.settings = settings;
+	Auth0.getStrategy = function(strategies, callback) {
+		meta.settings.get('sso-auth0', function(err, settings) {
+			Auth0.settings = settings;
 
 			if (!err && settings.id && settings.secret) {
-				passport.use(new GithubStrategy({
+				passport.use(new Auth0Strategy({
+					domain: settings.domain,
 					clientID: settings.id,
 					clientSecret: settings.secret,
-					callbackURL: nconf.get('url') + '/auth/github/callback',
+					callbackURL: nconf.get('url') + '/auth/auth0/callback',
 					passReqToCallback: true,
-					scope: [ 'user:email' ] // fetches non-public emails as well
-				}, function(req, token, tokenSecret, profile, done) {
+					state: false,	// this is ok because nodebb core passes state through in .authenticate()
+					scope: 'openid email profile',
+				}, function(req, token, unused, unused2, profile, done) {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
-						// Save GitHub -specific information to the user
-						User.setUserField(req.user.uid, 'githubid', profile.id);
-						db.setObjectField('githubid:uid', profile.id, req.user.uid);
+						// Save Auth0 -specific information to the user
+						User.setUserField(req.user.uid, 'auth0id', profile.id);
+						db.setObjectField('auth0id:uid', profile.id, req.user.uid);
 						return done(null, req.user);
 					}
 
 					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
-					GitHub.login(profile.id, profile.username, email, profile._json.avatar_url, function(err, user) {
+					Auth0.login(profile.id, profile.displayName, email, profile.picture, function(err, user) {
 						if (err) {
 							return done(err);
 						}
@@ -54,11 +56,11 @@
 				}));
 
 				strategies.push({
-					name: 'github',
-					url: '/auth/github',
-					callbackURL: '/auth/github/callback',
+					name: 'auth0',
+					url: '/auth/auth0',
+					callbackURL: '/auth/auth0/callback',
 					icon: constants.admin.icon,
-					scope: 'user:email'
+					scope: 'openid email profile'
 				});
 			}
 
@@ -66,28 +68,28 @@
 		});
 	};
 
-	GitHub.appendUserHashWhitelist = function (data, callback) {
-		data.whitelist.push('githubid');
+	Auth0.appendUserHashWhitelist = function (data, callback) {
+		data.whitelist.push('auth0id');
 		return setImmediate(callback, null, data);
 	};
 
-	GitHub.getAssociation = function(data, callback) {
-		User.getUserField(data.uid, 'githubid', function(err, githubid) {
+	Auth0.getAssociation = function(data, callback) {
+		User.getUserField(data.uid, 'auth0id', function(err, auth0id) {
 			if (err) {
 				return callback(err, data);
 			}
 
-			if (githubid) {
+			if (auth0id) {
 				data.associations.push({
 					associated: true,
 					name: constants.name,
 					icon: constants.admin.icon,
-					deauthUrl: nconf.get('url') + '/deauth/github',
+					deauthUrl: nconf.get('url') + '/deauth/auth0',
 				});
 			} else {
 				data.associations.push({
 					associated: false,
-					url: nconf.get('url') + '/auth/github',
+					url: nconf.get('url') + '/auth/auth0',
 					name: constants.name,
 					icon: constants.admin.icon
 				});
@@ -97,12 +99,8 @@
 		})
 	};
 
-	GitHub.login = function(githubID, username, email, avatar_url, callback) {
-		if (!email) {
-			email = username + '@users.noreply.github.com';
-		}
-
-		GitHub.getUidByGitHubID(githubID, function(err, uid) {
+	Auth0.login = function(auth0Id, username, email, picture, callback) {
+		Auth0.getUidByAuth0ID(auth0Id, function(err, uid) {
 			if (err) {
 				return callback(err);
 			}
@@ -115,17 +113,17 @@
 			} else {
 				// New User
 				var success = function(uid) {
-					// trust github's email
+					// trust email returned from Auth0
 					User.setUserField(uid, 'email:confirmed', 1);
 					db.sortedSetRemove('users:notvalidated', uid);
 
-					User.setUserField(uid, 'githubid', githubID);
+					User.setUserField(uid, 'auth0id', auth0Id);
 
 					// set profile picture
-					User.setUserField(uid, 'uploadedpicture', avatar_url);
-					User.setUserField(uid, 'picture', avatar_url);
+					User.setUserField(uid, 'uploadedpicture', picture);
+					User.setUserField(uid, 'picture', picture);
 
-					db.setObjectField('githubid:uid', githubID, uid);
+					db.setObjectField('auth0id:uid', auth0Id, uid);
 					callback(null, {
 						uid: uid
 					});
@@ -134,7 +132,7 @@
 				User.getUidByEmail(email, function(err, uid) {
 					if (!uid) {
 						// Abort user creation if registration via SSO is restricted
-						if (GitHub.settings.disableRegistration === 'on') {
+						if (Auth0.settings.disableRegistration === 'on') {
 							return callback(new Error('[[error:sso-registration-disabled, GitHub]]'));
 						}
 
@@ -153,8 +151,8 @@
 		});
 	};
 
-	GitHub.getUidByGitHubID = function(githubID, callback) {
-		db.getObjectField('githubid:uid', githubID, function(err, uid) {
+	Auth0.getUidByAuth0ID = function(auth0Id, callback) {
+		db.getObjectField('auth0id:uid', auth0Id, function(err, uid) {
 			if (err) {
 				callback(err);
 			} else {
@@ -163,7 +161,7 @@
 		});
 	};
 
-	GitHub.addMenuItem = function(custom_header, callback) {
+	Auth0.addMenuItem = function(custom_header, callback) {
 		custom_header.authentication.push({
 			"route": constants.admin.route,
 			"icon": constants.admin.icon,
@@ -173,25 +171,25 @@
 		callback(null, custom_header);
 	};
 
-	GitHub.init = function(data, callback) {
+	Auth0.init = function(data, callback) {
 		var hostHelpers = require.main.require('./src/routes/helpers');
 
 		function renderAdmin(req, res) {
-			res.render('admin/plugins/sso-github', {
-				callbackURL: nconf.get('url') + '/auth/github/callback'
+			res.render('admin/plugins/sso-auth0', {
+				callbackURL: nconf.get('url') + '/auth/auth0/callback'
 			});
 		}
 
-		data.router.get('/admin/plugins/sso-github', data.middleware.admin.buildHeader, renderAdmin);
-		data.router.get('/api/admin/plugins/sso-github', renderAdmin);
+		data.router.get('/admin/plugins/sso-auth0', data.middleware.admin.buildHeader, renderAdmin);
+		data.router.get('/api/admin/plugins/sso-auth0', renderAdmin);
 
-		hostHelpers.setupPageRoute(data.router, '/deauth/github', data.middleware, [data.middleware.requireUser], function (req, res) {
-			res.render('plugins/sso-github/deauth', {
-				service: "GitHub",
+		hostHelpers.setupPageRoute(data.router, '/deauth/auth0', data.middleware, [data.middleware.requireUser], function (req, res) {
+			res.render('plugins/sso-auth0/deauth', {
+				service: "Auth0",
 			});
 		});
-		data.router.post('/deauth/github', [data.middleware.requireUser, data.middleware.applyCSRF], function (req, res, next) {
-			GitHub.deleteUserData({
+		data.router.post('/deauth/auth0', [data.middleware.requireUser, data.middleware.applyCSRF], function (req, res, next) {
+			Auth0.deleteUserData({
 				uid: req.user.uid,
 			}, function (err) {
 				if (err) {
@@ -205,23 +203,23 @@
 		callback();
 	};
 
-	GitHub.deleteUserData = function(data, callback) {
+	Auth0.deleteUserData = function(data, callback) {
 		var uid = data.uid;
 
 		async.waterfall([
-			async.apply(User.getUserField, uid, 'githubid'),
+			async.apply(User.getUserField, uid, 'auth0id'),
 			function(oAuthIdToDelete, next) {
-				db.deleteObjectField('githubid:uid', oAuthIdToDelete, next);
+				db.deleteObjectField('auth0id:uid', oAuthIdToDelete, next);
 			},
-			async.apply(db.deleteObjectField, 'user:' + uid, 'githubid'),
+			async.apply(db.deleteObjectField, 'user:' + uid, 'auth0id'),
 		], function(err) {
 			if (err) {
-				winston.error('[sso-github] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
+				winston.error('[sso-auth0] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
 				return callback(err);
 			}
 			callback(null, uid);
 		});
 	};
 
-	module.exports = GitHub;
+	module.exports = Auth0;
 }(module));

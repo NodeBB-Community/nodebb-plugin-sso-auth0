@@ -3,12 +3,16 @@
 	<div class="col-sm-10 col-xs-12">
 		<div class="alert alert-info">
 			<p>
-				Register a new <strong>GitHub Application</strong> via 
-				<a href="https://github.com/settings/developers">Developer Applications</a> and then paste
+				Register a new <strong>Auth0 Application</strong> via your
+				<a href="https://manage.auth0.com/dashboard">Auth0 Dashboard</a> and then paste
 				your application details here.
 			</p>
 		</div>
-		<form class="sso-github-settings">
+		<form class="sso-auth0-settings">
+			<div class="form-group">
+				<label for="domain">Client Domain</label>
+				<input type="text" name="domain" title="Client Domain" class="form-control" placeholder="Client Domain">
+			</div>
 			<div class="form-group">
 				<label for="id">Client ID</label>
 				<input type="text" name="id" title="Client ID" class="form-control" placeholder="Client ID">
@@ -21,7 +25,7 @@
 				<label for="callback">Your NodeBB&apos;s "Authorization callback URL"</label>
 				<input type="text" id="callback" title="Authorization callback URL" class="form-control" value="{callbackURL}" readonly />
 				<p class="help-block">
-					Ensure that this value is set in your GitHub application&apos;s settings
+					Ensure that this value is set in your Auth0 application&apos;s settings
 				</p>
 			</div>
 			<div class="checkbox">
