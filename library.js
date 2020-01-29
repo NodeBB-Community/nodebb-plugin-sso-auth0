@@ -45,14 +45,7 @@
 					}
 
 					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
-					Auth0.login(profile.id, profile.displayName, email, profile.picture, function(err, user) {
-						if (err) {
-							return done(err);
-						}
-
-						authenticationController.onSuccessfulLogin(req, user.uid);
-						done(null, user);
-					});
+					Auth0.login(profile.id, profile.displayName, email, profile.picture, done);
 				}));
 
 				strategies.push({
