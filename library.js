@@ -35,7 +35,7 @@
 					callbackURL: nconf.get('url') + '/auth/auth0/callback',
 					passReqToCallback: true,
 					state: false,	// this is ok because nodebb core passes state through in .authenticate()
-					scope: 'openid email profile',
+					scope: 'email profile',
 				}, function(req, token, unused, unused2, profile, done) {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
 						// Save Auth0 -specific information to the user
@@ -53,7 +53,7 @@
 					url: '/auth/auth0',
 					callbackURL: '/auth/auth0/callback',
 					icon: constants.admin.icon,
-					scope: 'openid email profile'
+					scope: 'email profile'
 				});
 			}
 
