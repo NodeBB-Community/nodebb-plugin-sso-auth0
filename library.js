@@ -63,7 +63,7 @@
 
 	Auth0.appendUserHashWhitelist = function (data, callback) {
 		data.whitelist.push('auth0id');
-		return setImmediate(callback, null, data);
+		setImmediate(callback, null, data);
 	};
 
 	Auth0.getAssociation = function(data, callback) {
