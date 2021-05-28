@@ -5,7 +5,7 @@
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/julianlam/nodebb-plugin-sso-auth0"
+    "url": "https://github.com/NodeBB-Community/nodebb-plugin-sso-auth0"
   },
   "keywords": [
     "nodebb",
