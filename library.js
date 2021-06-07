@@ -45,7 +45,7 @@
 					}
 
 					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
-					Auth0.login(profile.id, profile.displayName, email, profile.picture, done);
+					Auth0.login(profile.id, profile.nickname || profile.displayName, email, profile.picture, done);
 				}));
 
 				strategies.push({
