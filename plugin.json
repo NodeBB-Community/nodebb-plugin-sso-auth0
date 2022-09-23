@@ -2,7 +2,7 @@
 	"id": "nodebb-plugin-sso-auth0",
 	"name": "NodeBB Auth0 SSO",
 	"description": "NodeBB Plugin that allows users to login/register via Auth0.",
-	"url": "https://github.com/julianlam/nodebb-plugin-sso-auth0",
+	"url": "https://github.com/NodeBB-Community/nodebb-plugin-sso-auth0",
 	"library": "./library.js",
 	"hooks": [
 		{ "hook": "static:app.load", "method": "init" },
@@ -13,7 +13,8 @@
 		{ "hook": "filter:user.whitelistFields", "method": "appendUserHashWhitelist" }
 	],
 	"templates": "./templates",
-	"acpScripts": [
-		"static/lib/admin.js"
-	]
+	"modules": {
+		"../client/quickstart.js": "./static/lib/quickstart.js",
+		"../admin/plugins/sso-auth0.js": "./static/lib/admin.js"
+	}
 }
