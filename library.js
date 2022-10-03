@@ -11,8 +11,6 @@
 
 	var winston = module.parent.require('winston');
 
-	var authenticationController = require.main.require('./src/controllers/authentication');
-
 	var constants = Object.freeze({
 		'name': "Auth0",
 		'admin': {
@@ -38,7 +36,7 @@
 					scope: 'openid email profile',
 				}, function(req, token, unused, unused2, profile, done) {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
-						// Save Auth0 -specific information to the user
+						// Save Auth0-specific information to the user
 						User.setUserField(req.user.uid, 'auth0id', profile.id);
 						db.setObjectField('auth0id:uid', profile.id, req.user.uid);
 						return done(null, req.user);

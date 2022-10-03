@@ -1,16 +1,24 @@
 <div class="row">
-	<div class="col-sm-2 col-xs-12 settings-header">GitHub SSO</div>
+	<div class="col-sm-2 col-xs-12 settings-header">Auth0 SSO</div>
 	<div class="col-sm-10 col-xs-12">
-		<div class="alert alert-info">
-			<p>
-				Register a new <strong>Auth0 Application</strong> via your
-				<a href="https://manage.auth0.com/dashboard">Auth0 Dashboard</a> and then paste
-				your application details here.
-			</p>
-		</div>
+		<p class="lead">Getting Started...</p>
+		<p>
+			Register a new <strong>Application</strong> via your
+			<a href="https://manage.auth0.com/dashboard">Auth0 Dashboard</a> and then paste
+			your application details here.
+		</p>
+		<p>
+			When requested, please select "Single Page Web Applications" as the application type.
+		</p>
+		<p>
+			Then, go to the "Settings" tab and populate the fields below with the values given.
+		</p>
+
+		<hr />
+
 		<form class="sso-auth0-settings">
 			<div class="form-group">
-				<label for="domain">Client Domain</label>
+				<label for="domain">Domain</label>
 				<input type="text" name="domain" title="Client Domain" class="form-control" placeholder="Client Domain">
 			</div>
 			<div class="form-group">

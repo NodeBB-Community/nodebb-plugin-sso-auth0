@@ -14,7 +14,6 @@
 	],
 	"templates": "./templates",
 	"modules": {
-		"../client/quickstart.js": "./static/lib/quickstart.js",
 		"../admin/plugins/sso-auth0.js": "./static/lib/admin.js"
 	}
 }
