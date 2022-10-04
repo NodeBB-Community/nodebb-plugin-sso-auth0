@@ -1,34 +1,34 @@
-(function(module) {
-	"use strict";
+'use strict';
 
-	var User = require.main.require('./src/user');
-	var db = require.main.require('./src/database');
-	var meta = require.main.require('./src/meta');
-	var groups = require.main.require('./src/groups');
-	var nconf = require.main.require('nconf');
-	var async = require.main.require('async');
-	var passport = require.main.require('passport');
+(function (module) {
+	const User = require.main.require('./src/user');
+	const db = require.main.require('./src/database');
+	const meta = require.main.require('./src/meta');
+	const groups = require.main.require('./src/groups');
+	const nconf = require.main.require('nconf');
+	const async = require.main.require('async');
+	const passport = require.main.require('passport');
 	const util = require('util');
-	var Auth0Strategy = require('passport-auth0');
+	const Auth0Strategy = require('passport-auth0');
 
-	var winston = module.parent.require('winston');
+	const winston = module.parent.require('winston');
 	const fetch = require('node-fetch');
 
-	var constants = Object.freeze({
-		'name': "Auth0",
-		'admin': {
-			'icon': 'fa-star',
-			'route': '/plugins/sso-auth0'
-		}
+	const constants = Object.freeze({
+		name: 'Auth0',
+		admin: {
+			icon: 'fa-star',
+			route: '/plugins/sso-auth0',
+		},
 	});
 
-	var Auth0 = {
+	const Auth0 = {
 		mgmtToken: undefined,
 		mgmtTokenExpiry: 0,
 	};
 
-	Auth0.getStrategy = function(strategies, callback) {
-		meta.settings.get('sso-auth0', function(err, settings) {
+	Auth0.getStrategy = function (strategies, callback) {
+		meta.settings.get('sso-auth0', (err, settings) => {
 			Auth0.settings = settings;
 
 			if (!err && settings.id && settings.secret) {
@@ -36,9 +36,9 @@
 					domain: settings.domain,
 					clientID: settings.id,
 					clientSecret: settings.secret,
-					callbackURL: nconf.get('url') + '/auth/auth0/callback',
+					callbackURL: `${nconf.get('url')}/auth/auth0/callback`,
 					passReqToCallback: true,
-					state: false,	// this is ok because nodebb core passes state through in .authenticate()
+					state: false, // this is ok because nodebb core passes state through in .authenticate()
 					scope: 'openid email profile',
 				}, async (req, token, unused, unused2, profile, done) => {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
@@ -49,7 +49,7 @@
 						return done(null, req.user);
 					}
 
-					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
+					const email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
 					const loginAsync = util.promisify(Auth0.login);
 
 					const { uid } = await loginAsync(profile.id, profile.nickname || profile.displayName, email, profile.picture);
@@ -62,7 +62,7 @@
 					url: '/auth/auth0',
 					callbackURL: '/auth/auth0/callback',
 					icon: constants.admin.icon,
-					scope: 'openid email profile'
+					scope: 'openid email profile',
 				});
 			}
 
@@ -75,8 +75,8 @@
 		setImmediate(callback, null, data);
 	};
 
-	Auth0.getAssociation = function(data, callback) {
-		User.getUserField(data.uid, 'auth0id', function(err, auth0id) {
+	Auth0.getAssociation = function (data, callback) {
+		User.getUserField(data.uid, 'auth0id', (err, auth0id) => {
 			if (err) {
 				return callback(err, data);
 			}
@@ -86,23 +86,23 @@
 					associated: true,
 					name: constants.name,
 					icon: constants.admin.icon,
-					deauthUrl: nconf.get('url') + '/deauth/auth0',
+					deauthUrl: `${nconf.get('url')}/deauth/auth0`,
 				});
 			} else {
 				data.associations.push({
 					associated: false,
-					url: nconf.get('url') + '/auth/auth0',
+					url: `${nconf.get('url')}/auth/auth0`,
 					name: constants.name,
-					icon: constants.admin.icon
+					icon: constants.admin.icon,
 				});
 			}
 
 			callback(null, data);
-		})
+		});
 	};
 
-	Auth0.login = function(auth0Id, username, email, picture, callback) {
-		Auth0.getUidByAuth0ID(auth0Id, function(err, uid) {
+	Auth0.login = function (auth0Id, username, email, picture, callback) {
+		Auth0.getUidByAuth0ID(auth0Id, (err, uid) => {
 			if (err) {
 				return callback(err);
 			}
@@ -110,11 +110,11 @@
 			if (uid) {
 				// Existing User
 				callback(null, {
-					uid: uid
+					uid: uid,
 				});
 			} else {
 				// New User
-				var success = function(uid) {
+				const success = function (uid) {
 					// trust email returned from Auth0
 					User.setUserField(uid, 'email:confirmed', 1);
 					db.sortedSetRemove('users:notvalidated', uid);
@@ -127,18 +127,18 @@
 
 					db.setObjectField('auth0id:uid', auth0Id, uid);
 					callback(null, {
-						uid: uid
+						uid: uid,
 					});
 				};
 
-				User.getUidByEmail(email, function(err, uid) {
+				User.getUidByEmail(email, (_, uid) => {
 					if (!uid) {
 						// Abort user creation if registration via SSO is restricted
 						if (Auth0.settings.disableRegistration === 'on') {
 							return callback(new Error('[[error:sso-registration-disabled, GitHub]]'));
 						}
 
-						User.create({username: username, email: email}, function(err, uid) {
+						User.create({ username: username, email: email }, (err, uid) => {
 							if (err !== null) {
 								callback(err);
 							} else {
@@ -164,14 +164,14 @@
 		const url = `https://${domain}/api/v2/users/${remoteId}/roles`;
 		const res = await fetch(url, {
 			headers: {
-				'Authorization': `bearer ${token}`,
-			}
+				Authorization: `bearer ${token}`,
+			},
 		});
 		const body = await res.json();
 		const roles = body.map(obj => obj.id);
 		winston.verbose(`[plugins/sso-auth0] Found ${roles.length} for ${remoteId}`);
 
-		const { toJoin, toLeave } = role2group.reduce((memo, {roleId, groupName}) => {
+		const { toJoin, toLeave } = role2group.reduce((memo, { roleId, groupName }) => {
 			if (roles.includes(roleId)) {
 				memo.toJoin.push(groupName);
 			} else {
@@ -204,14 +204,14 @@
 				grant_type: 'client_credentials',
 				client_id: mgmtId,
 				client_secret: mgmtSecret,
-				audience: `https://${domain}/api/v2/`
+				audience: `https://${domain}/api/v2/`,
 			}),
 			headers: { 'Content-Type': 'application/json' },
 		});
 
 		if (!res.ok) {
 			const { error } = await res.json();
-			winston.warn(`[plugins/sso-auth0] Unable to retrieve management token — ${error}`)
+			winston.warn(`[plugins/sso-auth0] Unable to retrieve management token — ${error}`);
 			return false;
 		}
 
@@ -220,10 +220,10 @@
 		Auth0.mgmtToken = access_token;
 		Auth0.mgmtTokenExpiry = Date.now() + (expires_in * 1000);
 		return access_token;
-	}
+	};
 
-	Auth0.getUidByAuth0ID = function(auth0Id, callback) {
-		db.getObjectField('auth0id:uid', auth0Id, function(err, uid) {
+	Auth0.getUidByAuth0ID = function (auth0Id, callback) {
+		db.getObjectField('auth0id:uid', auth0Id, (err, uid) => {
 			if (err) {
 				callback(err);
 			} else {
@@ -232,20 +232,20 @@
 		});
 	};
 
-	Auth0.addMenuItem = function(custom_header, callback) {
+	Auth0.addMenuItem = function (custom_header, callback) {
 		custom_header.authentication.push({
-			"route": constants.admin.route,
-			"icon": constants.admin.icon,
-			"name": constants.name
+			route: constants.admin.route,
+			icon: constants.admin.icon,
+			name: constants.name,
 		});
 
 		callback(null, custom_header);
 	};
 
-	Auth0.init = function(data, callback) {
-		var hostHelpers = require.main.require('./src/routes/helpers');
+	Auth0.init = function (data, callback) {
+		const hostHelpers = require.main.require('./src/routes/helpers');
 
-		async function renderAdmin (req, res) {
+		async function renderAdmin(req, res) {
 			let groupNames = await db.getSortedSetRange('groups:createtime', 0, -1);
 			groupNames = groupNames.filter(name => (
 				name !== 'registered-users' &&
@@ -256,7 +256,7 @@
 			));
 
 			res.render('admin/plugins/sso-auth0', {
-				callbackURL: nconf.get('url') + '/auth/auth0/callback',
+				callbackURL: `${nconf.get('url')}/auth/auth0/callback`,
 				groupNames,
 			});
 		}
@@ -264,38 +264,38 @@
 		data.router.get('/admin/plugins/sso-auth0', data.middleware.admin.buildHeader, renderAdmin);
 		data.router.get('/api/admin/plugins/sso-auth0', renderAdmin);
 
-		hostHelpers.setupPageRoute(data.router, '/deauth/auth0', data.middleware, [data.middleware.requireUser], function (req, res) {
+		hostHelpers.setupPageRoute(data.router, '/deauth/auth0', data.middleware, [data.middleware.requireUser], (req, res) => {
 			res.render('plugins/sso-auth0/deauth', {
-				service: "Auth0",
+				service: 'Auth0',
 			});
 		});
-		data.router.post('/deauth/auth0', [data.middleware.requireUser, data.middleware.applyCSRF], function (req, res, next) {
+		data.router.post('/deauth/auth0', [data.middleware.requireUser, data.middleware.applyCSRF], (req, res, next) => {
 			Auth0.deleteUserData({
 				uid: req.user.uid,
-			}, function (err) {
+			}, (err) => {
 				if (err) {
 					return next(err);
 				}
 
-				res.redirect(nconf.get('relative_path') + '/me/edit');
+				res.redirect(`${nconf.get('relative_path')}/me/edit`);
 			});
 		});
 
 		callback();
 	};
 
-	Auth0.deleteUserData = function(data, callback) {
-		var uid = data.uid;
+	Auth0.deleteUserData = function (data, callback) {
+		const { uid } = data;
 
 		async.waterfall([
 			async.apply(User.getUserField, uid, 'auth0id'),
-			function(oAuthIdToDelete, next) {
+			function (oAuthIdToDelete, next) {
 				db.deleteObjectField('auth0id:uid', oAuthIdToDelete, next);
 			},
-			async.apply(db.deleteObjectField, 'user:' + uid, 'auth0id'),
-		], function(err) {
+			async.apply(db.deleteObjectField, `user:${uid}`, 'auth0id'),
+		], (err) => {
 			if (err) {
-				winston.error('[sso-auth0] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
+				winston.error(`[sso-auth0] Could not remove OAuthId data for uid ${uid}. Error: ${err}`);
 				return callback(err);
 			}
 			callback(null, uid);
