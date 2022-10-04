@@ -4,12 +4,15 @@
 	var User = require.main.require('./src/user');
 	var db = require.main.require('./src/database');
 	var meta = require.main.require('./src/meta');
+	var groups = require.main.require('./src/groups');
 	var nconf = require.main.require('nconf');
 	var async = require.main.require('async');
 	var passport = require.main.require('passport');
+	const util = require('util');
 	var Auth0Strategy = require('passport-auth0');
 
 	var winston = module.parent.require('winston');
+	const fetch = require('node-fetch');
 
 	var constants = Object.freeze({
 		'name': "Auth0",
@@ -19,7 +22,10 @@
 		}
 	});
 
-	var Auth0 = {};
+	var Auth0 = {
+		mgmtToken: undefined,
+		mgmtTokenExpiry: 0,
+	};
 
 	Auth0.getStrategy = function(strategies, callback) {
 		meta.settings.get('sso-auth0', function(err, settings) {
@@ -34,16 +40,21 @@
 					passReqToCallback: true,
 					state: false,	// this is ok because nodebb core passes state through in .authenticate()
 					scope: 'openid email profile',
-				}, function(req, token, unused, unused2, profile, done) {
+				}, async (req, token, unused, unused2, profile, done) => {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
 						// Save Auth0-specific information to the user
 						User.setUserField(req.user.uid, 'auth0id', profile.id);
 						db.setObjectField('auth0id:uid', profile.id, req.user.uid);
+						Auth0.assignGroups(profile.id, req.user.uid);
 						return done(null, req.user);
 					}
 
 					var email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
-					Auth0.login(profile.id, profile.nickname || profile.displayName, email, profile.picture, done);
+					const loginAsync = util.promisify(Auth0.login);
+
+					const { uid } = await loginAsync(profile.id, profile.nickname || profile.displayName, email, profile.picture);
+					Auth0.assignGroups(profile.id, uid);
+					done(null, { uid });
 				}));
 
 				strategies.push({
@@ -142,6 +153,75 @@
 		});
 	};
 
+	Auth0.assignGroups = async (remoteId, uid) => {
+		const token = await Auth0.getMgmtToken();
+		const { domain, role2group } = await meta.settings.get('sso-auth0');
+
+		if (!token || !role2group || !role2group.length) {
+			return;
+		}
+
+		const url = `https://${domain}/api/v2/users/${remoteId}/roles`;
+		const res = await fetch(url, {
+			headers: {
+				'Authorization': `bearer ${token}`,
+			}
+		});
+		const body = await res.json();
+		const roles = body.map(obj => obj.id);
+		winston.verbose(`[plugins/sso-auth0] Found ${roles.length} for ${remoteId}`);
+
+		const { toJoin, toLeave } = role2group.reduce((memo, {roleId, groupName}) => {
+			if (roles.includes(roleId)) {
+				memo.toJoin.push(groupName);
+			} else {
+				memo.toLeave.push(groupName);
+			}
+
+			return memo;
+		}, { toJoin: [], toLeave: [] });
+		if (toLeave.length) {
+			winston.verbose(`[plugins/sso-auth0] uid ${uid} now leaving ${toLeave.length} user groups.`);
+		}
+		await groups.leave(toLeave, uid);
+		await groups.join(toJoin, uid);
+		winston.verbose(`[plugins/sso-auth0] uid now ${uid} a part of ${toJoin.length} user groups.`);
+	};
+
+	Auth0.getMgmtToken = async () => {
+		if (Auth0.mgmtToken && Auth0.mgmtTokenExpiry > Date.now()) {
+			return Auth0.mgmtToken;
+		}
+
+		const { domain, mgmtId, mgmtSecret } = await meta.settings.get('sso-auth0');
+		if (!mgmtId || !mgmtSecret) {
+			return false;
+		}
+
+		const res = await fetch(`https://${domain}/oauth/token`, {
+			method: 'post',
+			body: JSON.stringify({
+				grant_type: 'client_credentials',
+				client_id: mgmtId,
+				client_secret: mgmtSecret,
+				audience: `https://${domain}/api/v2/`
+			}),
+			headers: { 'Content-Type': 'application/json' },
+		});
+
+		if (!res.ok) {
+			const { error } = await res.json();
+			winston.warn(`[plugins/sso-auth0] Unable to retrieve management token — ${error}`)
+			return false;
+		}
+
+		const { access_token, expires_in } = await res.json();
+		winston.verbose('[plugins/sso-auth0] Retrieved new management bearer token');
+		Auth0.mgmtToken = access_token;
+		Auth0.mgmtTokenExpiry = Date.now() + (expires_in * 1000);
+		return access_token;
+	}
+
 	Auth0.getUidByAuth0ID = function(auth0Id, callback) {
 		db.getObjectField('auth0id:uid', auth0Id, function(err, uid) {
 			if (err) {
@@ -165,9 +245,19 @@
 	Auth0.init = function(data, callback) {
 		var hostHelpers = require.main.require('./src/routes/helpers');
 
-		function renderAdmin(req, res) {
+		async function renderAdmin (req, res) {
+			let groupNames = await db.getSortedSetRange('groups:createtime', 0, -1);
+			groupNames = groupNames.filter(name => (
+				name !== 'registered-users' &&
+				name !== 'verified-users' &&
+				name !== 'unverified-users' &&
+				name !== groups.BANNED_USERS &&
+				!groups.isPrivilegeGroup(name)
+			));
+
 			res.render('admin/plugins/sso-auth0', {
-				callbackURL: nconf.get('url') + '/auth/auth0/callback'
+				callbackURL: nconf.get('url') + '/auth/auth0/callback',
+				groupNames,
 			});
 		}
 

@@ -1,4 +1,4 @@
-define('admin/plugins/sso-auth0', ['settings'], function(Settings) {
+define('admin/plugins/sso-auth0', ['settings', 'hooks'], function(Settings, hooks) {
 	'use strict';
 	/* globals $, app, socket, require */
 
@@ -19,6 +19,14 @@ define('admin/plugins/sso-auth0', ['settings'], function(Settings) {
 					}
 				});
 			});
+		});
+
+		hooks.onPage('filter:settings.sorted-list.load', (data) => {
+			data.formValues = {
+				groupNames: ajaxify.data.groupNames,
+			};
+
+			return data;
 		});
 	};
 
