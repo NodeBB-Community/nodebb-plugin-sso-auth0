@@ -1,12 +1,12 @@
 <form>
-	<div class="form-group">
+	<div class="mb-3">
 		<label for="roleId">Role ID</label>
 		<input type="text" id="roleId" name="roleId" class="form-control" />
-		<p class="help-text">
+		<p class="form-text">
 			You can find this value by going into the role settings itself. It is shown under the role name.
 		</p>
 	</div>
-	<div class="form-group">
+	<div class="mb-3">
 		<label for="groupName">Group Name</label>
 		<select id="groupName" name="groupName" class="form-control">
 			{{{ each groupNames }}}
