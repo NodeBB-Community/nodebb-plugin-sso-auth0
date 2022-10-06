@@ -38,7 +38,6 @@
 					clientSecret: settings.secret,
 					callbackURL: `${nconf.get('url')}/auth/auth0/callback`,
 					passReqToCallback: true,
-					state: false, // this is ok because nodebb core passes state through in .authenticate()
 					scope: 'openid email profile',
 				}, async (req, token, unused, unused2, profile, done) => {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
@@ -63,6 +62,7 @@
 					callbackURL: '/auth/auth0/callback',
 					icon: constants.admin.icon,
 					scope: 'openid email profile',
+					checkState: false, // defer to state checking used by passport-auth0
 				});
 			}
 
@@ -167,6 +167,14 @@
 				Authorization: `bearer ${token}`,
 			},
 		});
+
+		if (!res.ok) {
+			const { message } = await res.json();
+			winston.warn('[plugins/sso-auth0] Unable to retrieve user roles; error follows.');
+			winston.error(`[plugins/sso-auth0] ${message}`);
+			return;
+		}
+
 		const body = await res.json();
 		const roles = body.map(obj => obj.id);
 		winston.verbose(`[plugins/sso-auth0] Found ${roles.length} for ${remoteId}`);
