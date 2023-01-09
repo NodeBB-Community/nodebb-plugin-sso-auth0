@@ -8,7 +8,6 @@
 	const nconf = require.main.require('nconf');
 	const async = require.main.require('async');
 	const passport = require.main.require('passport');
-	const util = require('util');
 	const Auth0Strategy = require('passport-auth0');
 
 	const winston = module.parent.require('winston');
@@ -49,9 +48,9 @@
 					}
 
 					const email = Array.isArray(profile.emails) && profile.emails.length ? profile.emails[0].value : '';
-					const loginAsync = util.promisify(Auth0.login);
-
-					const { uid } = await loginAsync(profile.id, profile.nickname || profile.displayName, email, profile.picture);
+					const { uid } = await Auth0.login(
+						profile.id, profile.nickname || profile.displayName, email, profile.picture
+					);
 					Auth0.assignGroups(profile.id, uid);
 					done(null, { uid });
 				}));
@@ -101,56 +100,36 @@
 		});
 	};
 
-	Auth0.login = function (auth0Id, username, email, picture, callback) {
-		Auth0.getUidByAuth0ID(auth0Id, (err, uid) => {
-			if (err) {
-				return callback(err);
+	Auth0.login = async (auth0id, username, email, picture) => {
+		let uid = await Auth0.getUidByAuth0ID(auth0id);
+		if (uid) {
+			// Existing User
+			return { uid };
+		}
+
+		uid = await User.getUidByEmail(email);
+		if (!uid) {
+			// Abort user creation if registration via SSO is restricted
+			if (Auth0.settings.disableRegistration === 'on') {
+				throw new Error('[[error:sso-registration-disabled, Auth0]]');
 			}
 
-			if (uid) {
-				// Existing User
-				callback(null, {
-					uid: uid,
-				});
-			} else {
-				// New User
-				const success = function (uid) {
-					// trust email returned from Auth0
-					User.setUserField(uid, 'email:confirmed', 1);
-					db.sortedSetRemove('users:notvalidated', uid);
+			uid = await User.create({ username: username });
+		}
 
-					User.setUserField(uid, 'auth0id', auth0Id);
+		// New or existing account
+		await User.setUserField(uid, 'email', email);
+		await Promise.all([
+			User.email.confirmByUid(uid),
+			User.setUserFields(uid, {
+				auth0id,
+				picture,
+				uploadedpicture: picture,
+			}),
+			db.setObjectField('auth0id:uid', auth0id, uid),
+		]);
 
-					// set profile picture
-					User.setUserField(uid, 'uploadedpicture', picture);
-					User.setUserField(uid, 'picture', picture);
-
-					db.setObjectField('auth0id:uid', auth0Id, uid);
-					callback(null, {
-						uid: uid,
-					});
-				};
-
-				User.getUidByEmail(email, (_, uid) => {
-					if (!uid) {
-						// Abort user creation if registration via SSO is restricted
-						if (Auth0.settings.disableRegistration === 'on') {
-							return callback(new Error('[[error:sso-registration-disabled, GitHub]]'));
-						}
-
-						User.create({ username: username, email: email }, (err, uid) => {
-							if (err !== null) {
-								callback(err);
-							} else {
-								success(uid);
-							}
-						});
-					} else {
-						success(uid); // Existing account -- merge
-					}
-				});
-			}
-		});
+		return { uid };
 	};
 
 	Auth0.assignGroups = async (remoteId, uid) => {
@@ -230,15 +209,7 @@
 		return access_token;
 	};
 
-	Auth0.getUidByAuth0ID = function (auth0Id, callback) {
-		db.getObjectField('auth0id:uid', auth0Id, (err, uid) => {
-			if (err) {
-				callback(err);
-			} else {
-				callback(null, uid);
-			}
-		});
-	};
+	Auth0.getUidByAuth0ID = async auth0Id => db.getObjectField('auth0id:uid', auth0Id);
 
 	Auth0.addMenuItem = function (custom_header, callback) {
 		custom_header.authentication.push({
