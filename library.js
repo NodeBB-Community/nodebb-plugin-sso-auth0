@@ -41,9 +41,12 @@
 				}, async (req, token, unused, unused2, profile, done) => {
 					if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
 						// Save Auth0-specific information to the user
-						User.setUserField(req.user.uid, 'auth0id', profile.id);
-						db.setObjectField('auth0id:uid', profile.id, req.user.uid);
-						Auth0.assignGroups(profile.id, req.user.uid);
+						await Promise.all([
+							User.setUserField(req.user.uid, 'auth0id', profile.id),
+							db.setObjectField('auth0id:uid', profile.id, req.user.uid),
+							Auth0.assignGroups(profile.id, req.user.uid),
+						]);
+
 						return done(null, req.user);
 					}
 
@@ -107,7 +110,10 @@
 			return { uid };
 		}
 
-		uid = await User.getUidByEmail(email);
+		if (email) {
+			uid = await User.getUidByEmail(email);
+		}
+
 		if (!uid) {
 			// Abort user creation if registration via SSO is restricted
 			if (Auth0.settings.disableRegistration === 'on') {
@@ -118,9 +124,12 @@
 		}
 
 		// New or existing account
-		await User.setUserField(uid, 'email', email);
+		if (email) {
+			await User.setUserField(uid, 'email', email);
+			await User.email.confirmByUid(uid);
+		}
+
 		await Promise.all([
-			User.email.confirmByUid(uid),
 			User.setUserFields(uid, {
 				auth0id,
 				picture,
