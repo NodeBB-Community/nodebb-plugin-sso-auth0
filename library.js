@@ -69,8 +69,8 @@
 						svg: svgIcon,
 					},
 					labels: {
-						login: 'Login with auth0',
-						register: 'Register with auth0',
+						login: 'Sign in with auth0',
+						register: 'Sign up with auth0',
 					},
 					color: '#eb5424',
 					scope: 'openid email profile',
