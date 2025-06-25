@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-sso-auth0",
-  "version": "4.1.3",
+  "version": "4.2.0",
   "description": "NodeBB Auth0 SSO",
   "main": "library.js",
   "repository": {
