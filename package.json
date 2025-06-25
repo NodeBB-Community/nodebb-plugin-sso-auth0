@@ -42,7 +42,7 @@
     "passport-auth0": "^1.4.3"
   },
   "nbbpm": {
-    "compatibility": "^3.0.0"
+    "compatibility": "^3.2.x || ^4.x"
   },
   "devDependencies": {
     "eslint": "8.x",

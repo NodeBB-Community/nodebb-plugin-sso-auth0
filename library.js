@@ -256,6 +256,7 @@
 			res.render('admin/plugins/sso-auth0', {
 				callbackURL: `${nconf.get('url')}/auth/auth0/callback`,
 				groupNames,
+				title: 'SSO Auth0',
 			});
 		}
 

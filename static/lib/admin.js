@@ -1,6 +1,6 @@
 'use strict';
 
-define('admin/plugins/sso-auth0', ['settings', 'hooks'], function (Settings, hooks) {
+define('admin/plugins/sso-auth0', ['settings', 'hooks', 'alerts'], function (Settings, hooks, alerts) {
 	var ACP = {};
 
 	ACP.init = function () {
@@ -8,7 +8,7 @@ define('admin/plugins/sso-auth0', ['settings', 'hooks'], function (Settings, hoo
 
 		$('#save').on('click', function () {
 			Settings.save('sso-auth0', $('.sso-auth0-settings'), function () {
-				app.alert({
+				alerts.alert({
 					type: 'success',
 					alert_id: 'sso-auth0-saved',
 					title: 'Settings Saved',
